@@ -185,7 +185,7 @@ export function AgentConsole() {
                 {now ? now.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : ""}
               </p>
               <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" /> {tz}
+                <Clock className="h-3.5 w-3.5" /> {now ? tz : ""}
               </p>
             </section>
           </div>
