@@ -523,7 +523,7 @@ function Btn({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-secondary transition-colors"
+      className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-secondary transition-colors"
     >
       {children}
     </button>
