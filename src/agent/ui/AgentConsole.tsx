@@ -15,13 +15,11 @@ import {
   CalendarDays,
 } from "lucide-react";
 import type { AssistantState, Message } from "@/agent";
-import { useAgent } from "./use-agent";
+import { useAgentCtx, type Theme } from "./AgentProvider";
 import robot from "@/assets/robot.png";
-import bgNight from "@/assets/bg-night.jpg";
 
-type Theme = "day" | "night";
 
-const STATE_LABEL: Record<AssistantState, string> = {
+export const STATE_LABEL: Record<AssistantState, string> = {
   idle: "Ready",
   listening: "Listening…",
   transcribing: "Transcribing…",
@@ -32,11 +30,10 @@ const STATE_LABEL: Record<AssistantState, string> = {
 };
 
 export function AgentConsole() {
-  const a = useAgent();
+  const { agent: a, theme, setTheme } = useAgentCtx();
   const [draft, setDraft] = useState("");
   const [lastVoice, setLastVoice] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
-  const [theme, setTheme] = useState<Theme>("night");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -50,14 +47,6 @@ export function AgentConsole() {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-  // Presentation-only theme: read saved choice after hydration, apply as a class.
-  useEffect(() => {
-    if (localStorage.getItem("agent-theme") === "day") setTheme("day");
-  }, []);
-  useEffect(() => {
-    document.documentElement.classList.toggle("day", theme === "day");
-    localStorage.setItem("agent-theme", theme);
-  }, [theme]);
   const lastContent = messages.at(-1)?.content;
   useEffect(() => {
     // Braces matter: newer browsers return a Promise from scrollIntoView,
@@ -99,112 +88,10 @@ export function AgentConsole() {
     (messages.at(-1)?.status === "failed" || messages.at(-1)?.status === "cancelled");
 
   return (
-    <div className="relative min-h-screen text-foreground flex flex-col md:flex-row md:h-screen md:overflow-hidden bg-background">
-      {/* Decorative scene — never captures pointer events */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 -z-0">
-        <img
-          src={bgNight}
-          alt=""
-          className={`h-full w-full object-cover transition-opacity duration-500 ${theme === "day" ? "opacity-25" : "opacity-100"}`}
-        />
-        <div className="absolute inset-0" style={{ background: "var(--scene-overlay)" }} />
-      </div>
-
-      {/* Sidebar / diagnostics */}
-      <aside className="relative z-10 md:w-72 m-3 md:mr-0 glass rounded-3xl p-5 space-y-6 text-sm md:overflow-y-auto">
-        <div className="flex items-center gap-3">
-          <div className="relative h-12 w-12 rounded-2xl grid place-items-center shadow-[var(--shadow-glow)]" style={{ background: "var(--gradient-neon)" }}>
-            <span className="text-2xl font-bold text-primary-foreground">A</span>
-            <span
-              className={`absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2 border-background ${state === "error" ? "bg-destructive" : state === "idle" || state === "cancelled" ? "bg-muted-foreground" : "bg-accent animate-pulse"}`}
-            />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-[0.2em] leading-none">AGENT</h1>
-            <p className="text-xs text-muted-foreground mt-1">Your AI Assistant</p>
-          </div>
-        </div>
-
-        <Section title="Status">
-          <Row label="Assistant" value={STATE_LABEL[state]} live />
-          <Row
-            label="AI provider"
-            value={
-              a.providerConfigured === null
-                ? "Checking…"
-                : a.providerConfigured
-                  ? "Lovable AI (server)"
-                  : "Not configured"
-            }
-            tone={a.providerConfigured === false ? "warn" : undefined}
-          />
-          <Row
-            label="Speech input"
-            value={a.caps.stt ? "Browser Web Speech" : "Unavailable"}
-            tone={a.caps.stt ? undefined : "warn"}
-          />
-          <Row
-            label="Speech output"
-            value={a.caps.tts ? "Browser speechSynthesis" : "Unavailable"}
-            tone={a.caps.tts ? undefined : "warn"}
-          />
-        </Section>
-
-        <Section title="Voice output">
-          <label className="flex items-center justify-between gap-2">
-            <span>Speak replies</span>
-            <input
-              type="checkbox"
-              className="accent-[var(--accent)] h-4 w-4"
-              checked={a.settings.voiceOutput}
-              onChange={(e) => {
-                a.setSettings({ ...a.settings, voiceOutput: e.target.checked });
-                if (!e.target.checked) a.stopSpeaking();
-              }}
-            />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-xs text-muted-foreground">Voice</span>
-            <select
-              className="w-full rounded-xl bg-secondary border border-border px-2 py-1.5"
-              value={a.settings.voiceURI ?? ""}
-              onChange={(e) =>
-                a.setSettings({ ...a.settings, voiceURI: e.target.value || undefined })
-              }
-            >
-              <option value="">System default</option>
-              {a.voices.map((v) => (
-                <option key={v.voiceURI} value={v.voiceURI}>
-                  {v.name} ({v.lang})
-                </option>
-              ))}
-            </select>
-          </label>
-          <Slider
-            label="Rate"
-            min={0.5}
-            max={2}
-            value={a.settings.rate}
-            onChange={(rate) => a.setSettings({ ...a.settings, rate })}
-          />
-          <Slider
-            label="Volume"
-            min={0}
-            max={1}
-            value={a.settings.volume}
-            onChange={(volume) => a.setSettings({ ...a.settings, volume })}
-          />
-        </Section>
-
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Privacy: typed and recognized text is sent to the AI service, except time and date
-          questions which are answered on this device. Browser speech recognition may send audio to
-          your browser vendor. No recordings are stored.
-        </p>
-      </aside>
+    <>
 
       {/* Conversation */}
-      <main className="relative z-10 flex-1 flex flex-col min-h-0 h-screen">
+      <main className="flex-1 flex flex-col min-h-0 h-full">
         <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
           <div role="status" aria-live="polite" className="glass rounded-full px-4 py-1.5 flex items-center gap-2 text-sm">
             <StateDot state={state} /> {STATE_LABEL[state]}
@@ -359,11 +246,11 @@ export function AgentConsole() {
           </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }
 
-function ThemeToggle({ theme, onChange }: { theme: Theme; onChange: (t: Theme) => void }) {
+export function ThemeToggle({ theme, onChange }: { theme: Theme; onChange: (t: Theme) => void }) {
   return (
     <div role="group" aria-label="Appearance" className="glass rounded-full p-1 flex text-sm">
       {(["day", "night"] as const).map((t) => (
@@ -443,7 +330,7 @@ function StateDot({ state }: { state: AssistantState }) {
   return <span className={`h-2.5 w-2.5 rounded-full ${cls}`} />;
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+export function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-2">
       <h2 className="text-[11px] uppercase tracking-widest text-muted-foreground">{title}</h2>
@@ -452,7 +339,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Row({
+export function Row({
   label,
   value,
   tone,
@@ -476,7 +363,7 @@ function Row({
   );
 }
 
-function Slider({
+export function Slider({
   label,
   min,
   max,
@@ -508,7 +395,7 @@ function Slider({
   );
 }
 
-function Btn({
+export function Btn({
   onClick,
   label,
   children,
@@ -530,7 +417,7 @@ function Btn({
   );
 }
 
-function Banner({
+export function Banner({
   children,
   tone,
   onClose,
