@@ -13,3 +13,4 @@
 - Agent lives in `src/agent/`: `core/` (UI-free orchestration, models, time service, provider interface), `voice/` (STT/TTS abstractions + browser impls), `ui/` (dev console). Core must never import UI or voice code — keeps it embeddable in a larger host.
 - AI calls go through the server route `src/routes/api/agent/chat.ts`; the browser only talks to it via `HttpStreamingProvider` so the API key stays server-side.
 - Time/date questions are answered by `TimeService` locally, never by the model — they must reflect the real clock.
+- One agent instance is mounted app-wide by `AgentProvider` in `__root.tsx`; pages (Home, History, Settings) read it via `useAgentCtx` so conversation and settings survive navigation.
